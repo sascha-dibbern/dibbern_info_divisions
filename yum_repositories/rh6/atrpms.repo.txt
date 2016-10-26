@@ -1,0 +1,26 @@
+[atrpms]
+name=Red Hat Enterprise Linux $releasever - $basearch - ATrpms
+failovermethod=priority
+baseurl=http://dl.atrpms.net/el$releasever-$basearch/atrpms/stable
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-atrpms
+priority=73
+
+[atrpms-debuginfo]
+name=Red Hat Enterprise Linux $releasever - $basearch - ATrpms - Debug
+failovermethod=priority
+baseurl=http://dl.atrpms.net/debug/el$releasever-$basearch/atrpms/stable
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-atrpms
+priority=72
+
+[atrpms-source]
+name=Red Hat Enterprise Linux $releasever - $basearch - ATrpms - Source
+failovermethod=priority
+baseurl=http://dl.atrpms.net/src/el$releasever-$basearch/atrpms/stable
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-atrpms
+priority=72

@@ -1,0 +1,135 @@
+#
+# *cfdivisions_bundlesequence = dhcp_server_division_preparation,dhcp_server_teardown,dhcp_server_setup
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+body classes dhcp_server_setup_class
+{
+      scope => "bundle";
+      promise_kept => { "dhcp_server_installed" };
+}
+
+body classes dhcp_server_remove_class
+{
+      scope => "bundle";
+      promise_kept => { "dhcp_server_uninstalled" };
+}
+
+bundle common dhcp_server_configuration
+{
+  vars:
+   any::
+      # Artefacts
+      "artefacts"
+        string => "dibbern_info_config_dhcp_server";
+
+      "cached_artefacts"
+        string => "$(common_divisions:artefacts.cache)/$(artefacts)";
+
+      # Networks
+      "network[intranet_dibbern_info]" string => "192.168.10.0/24";
+
+    common_divisions:redhat_alike::
+      "dir[etc_dhcp]"          string => "/etc/dhcp";
+      "superuser"              string => "dhcpd";
+      "supergroup"             string => "dhcpd";
+}
+
+bundle agent dhcp_server_division_preparation
+{
+  methods:
+    common_divisions:dhcp_server::
+      "update_artefacts $(dhcp_server_config.artefacts)"
+        usebundle => common_divisions:artefacts_cache(
+          "$(dhcp_server_configuration.artefacts)",
+          "dhcp_server_artefacts"
+        );
+}
+
+bundle agent dhcp_server_teardown
+{
+  packages:
+    common_divisions:no_dhcp_server.common_divisions:redhat_alike::
+      "dhcp"
+         policy         => "absent",
+         package_module => default:yum,
+         classes        => dhcp_server_remove_class;
+
+  services:
+    (common_divisions:remove_dhcp_server|common_divisions:no_dhcp_server).common_divisions:redhat_alike::
+      "dhcpd" 
+        service_policy => "stop",
+        service_method => common_divisions:standard_service; 
+
+      "dhcpd" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service; 
+}
+
+bundle agent dhcp_server_setup
+{
+#  classes:
+#      "dhcpd_restart_required"
+#        or => { 
+#          "common_divisions:dhcp_server_config_files_repaired",
+#        };
+
+  vars:
+      "resource_folder"
+        string => "$(default:cfdivisions.dibbern_info_divisions_path[dhcp_server])",
+        policy => "overridable";
+
+      "dir_etc_dhcp"
+        string => "$(dhcp_server_configuration.dir[etc_dhcp])";
+
+      "cached_dir_etc_dhcp"
+        string => "$(dhcp_server_configuration.cached_artefacts)/$(dhcp_server_configuration.dir[etc_dhcp])";
+
+  files:
+      "$(dhcp_server_configuration.dir[etc_dhcp])"
+        copy_from    => default:local_dcp("$(cached_dir_etc_dhcp)/."),
+        perms        => default:mog(
+          "640",
+          "$(dhcp_server_configuration.superuser)",
+          "$(dhcp_server_configuration.supergroup)"
+        ),
+        classes      => default:if_repaired("dhcpd_restart_required");
+
+  packages:
+    common_divisions:dhcp_server.common_divisions:redhat_alike::
+      "dhcp"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => dhcp_server_setup_class;
+
+#  methods:
+#    common_divisions:dhcp_server::
+#      "update_artefact $(dhcp_server_configuration.dir[etc])/$(files)"
+#        usebundle => common_divisions:artefacts_update_file(
+#          "dibbern_info_config_dhcp_server/$(files).txt",
+#          "$(dhcp_server_configuration.dir[etc])/$(files)",
+#          "640","$(dhcp_server_configuration.superuser)","$(dhcp_server_configuration.supergroup)",
+#          "dhcp_server_config_files"
+#        );
+
+  services:
+    common_divisions:dhcp_server::
+      "dhcpd" 
+        service_policy => "enable",
+        service_method => common_divisions:standard_service; 
+
+      "dhcpd" 
+        service_policy => "start",
+        service_method => common_divisions:standard_service; 
+
+    dhcpd_restart_required::
+      "dhcpd" 
+        service_policy => "restart",
+        service_method => common_divisions:standard_service; 
+
+}

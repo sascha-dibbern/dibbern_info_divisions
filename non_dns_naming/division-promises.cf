@@ -1,0 +1,38 @@
+#
+# *cfdivisions_bundlesequence = non_dns_naming_setup
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+bundle agent non_dns_naming_setup
+{
+  vars:
+    any::
+      "resource_folder"
+        string => "$(default:cfdivisions.dibbern_info_divisions_path[non_dns_naming])";
+
+      "hostfiles[dev002.intranet.dibbern.info]"  string => "dev002.intranet.dibbern.info.txt";
+      "hostfiles[host001.intranet.dibbern.info]" string => "host001.intranet.dibbern.info.txt";
+      "hostfiles[host007.intranet.dibbern.info]" string => "host007.intranet.dibbern.info.txt";
+      "hostfiles[host008.intranet.dibbern.info]" string => "host007.intranet.dibbern.info.txt";
+      "hostfiles[host009.intranet.dibbern.info]" string => "host007.intranet.dibbern.info.txt";
+
+  classes:
+      "hostfile_override"
+        not => strcmp("$(hostfiles[$(sys.host)])","");
+
+  vars:
+    hostfile_override::
+      "source_hostsfile"
+        string => "$(resource_folder)/$(hostfiles[$(sys.host)])";
+
+  files:
+    hostfile_override::
+      "/etc/hosts"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(source_hostsfile)");
+}

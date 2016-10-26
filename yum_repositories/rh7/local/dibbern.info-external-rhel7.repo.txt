@@ -1,0 +1,21 @@
+[dibbern.info-external-rhel7-local]
+name=External packages for dibbern.info for $basearch
+baseurl=file://var/repositories/dibbern.info/external/rhel7/$basearch
+	http://localhost/dibbern.info/external/rhel7/$basearch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=3
+
+[dibbern.info-external-rhel7-noarch-local]
+name=External packages for dibbern.info for noarch
+baseurl=file://var/repositories/dibbern.info/external/rhel7/noarch
+	http://localhost/external/dibbern.info/rhel7/noarch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=3

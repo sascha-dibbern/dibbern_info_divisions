@@ -1,0 +1,15 @@
+#
+# *cfdivisions_bundlesequence = main_library_configuration
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+bundle agent main_library_configuration
+{
+  methods:
+    "configuration" usebundle => common_divisions:library_configuration("dibbern_info_divisions.json");
+}

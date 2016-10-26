@@ -1,0 +1,225 @@
+#
+# *cfdivisions_bundlesequence = yum_repositories_setup
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+body classes yum_priorities_packages_installation_class
+{
+      scope            => "bundle";
+      promise_kept     => { "package_yum_priorities_installed" };
+      promise_repaired => { "package_yum_priorities_repaired"  };
+}
+
+body classes yum_plugin_priorities_installation_class
+{
+      scope            => "bundle";
+      promise_kept     => { "package_yum_plugin_priorities_installed" };
+      promise_repaired => { "package_yum_plugin_priorities_repaired"  };
+}
+
+bundle agent yum_repositories_setup
+{
+  vars:
+    # Usage of host only repositories
+    common_divisions:hostonly_yum_repos::
+      "postfix" 
+        string => ".hostonly";
+
+    !common_divisions:hostonly_yum_repos::
+      "postfix" 
+        string => "";
+
+    common_divisions:rhel_alike::
+      "repodir" 
+        string => "/etc/yum.repos.d";
+
+      "pkidir"
+        string => "/etc/pki/rpm-gpg";
+
+      "division_dir"
+        string => "$(default:cfdivisions.dibbern_info_divisions_path[yum_repositories])";
+
+#RHEL5
+    common_divisions:rhel_alike_5::
+      "platform_dir"
+        string => "rh5";
+
+#RHEL6
+    common_divisions:rhel_alike_6::
+      "platform_dir"
+        string => "rh6";
+
+      "keys"
+        slist => {
+          "jenkins-ci.org",
+	  "RPM-GPG-KEY-adobe-linux",
+          "RPM-GPG-KEY-EPEL-6",
+          "RPM-GPG-KEY-livna",
+          "RPM-GPG-KEY-rpmforge-dag",
+          "RPM-GPG-KEY-rpmforge-fabian",
+          "RPM-GPG-KEY-rpmfusion-free-el-6",
+          "RPM-GPG-KEY-rpmfusion-nonfree-el-6"
+        };
+
+      "repos"
+        slist => {
+          "CentOS-Base.repo",
+          "CentOS-Debuginfo.repo",
+          "CentOS-Media.repo",
+          "CentOS-Vault.repo",
+          "epel.repo",
+          "epel-testing.repo",
+# ATRpms: Dead
+#          "atrpms.repo",
+
+# Old ... maybe dying
+#          "jpackage50.repo",
+
+          "jenkins.repo",
+
+# Livna Old DVDCSS-packages
+#          "livna.repo",
+
+# For rdiff-backup (or else old)
+          "rpmforge.repo",
+
+# Old multimedia stuff
+#          "rpmfusion-free-updates.repo",
+#          "rpmfusion-free-updates-testing.repo",
+#          "rpmfusion-nonfree-updates.repo",
+#          "rpmfusion-nonfree-updates-testing.repo"
+        };
+
+    !common_divisions:use_local_repository.common_divisions:rhel_alike_6::
+      "local_repos"
+        slist => {
+          "dibbern.info-3rdparty-rhel6.repo",
+          "dibbern.info-external-rhel6.repo",
+          "dibbern.info-internal-rhel6.repo",
+        };
+
+    common_divisions:use_local_repository.common_divisions:rhel_alike_6::
+      "local_repos"
+        slist => {
+          "local/dibbern.info-3rdparty-rhel6.repo",
+          "local/dibbern.info-external-rhel6.repo",
+          "local/dibbern.info-internal-rhel6.repo"
+        };
+
+      "local_keys"
+        slist => {
+        };
+
+    default:64_bit.common_divisions:rhel_alike_6::
+      "repos_64bit_only"
+        slist => {
+          "adobe-linux-x86_64.repo"
+        };
+
+# RHEL7
+    common_divisions:rhel_alike_7::
+      "platform_dir"
+        string => "rh7";
+
+      "keys"
+        slist => {
+          "jenkins-ci.org",
+	  "RPM-GPG-KEY-adobe-linux",
+          "RPM-GPG-KEY-CentOS-7",
+          "RPM-GPG-KEY-CentOS-Debug-7",
+          "RPM-GPG-KEY-CentOS-Testing-7",
+          "RPM-GPG-KEY-EPEL-7"
+        };
+
+      "repos"
+        slist => {
+          "CentOS-Base.repo",
+          "CentOS-CR.repo",
+          "CentOS-Debuginfo.repo",
+          "CentOS-fasttrack.repo",
+          "CentOS-Media.repo",
+          "CentOS-Sources.repo",
+          "CentOS-Vault.repo",
+          "epel.repo",
+          "epel-testing.repo",
+          "jenkins.repo"
+        };
+
+    !common_divisions:use_local_repository.common_divisions:rhel_alike_7::
+      "local_repos"
+        slist => {
+          "dibbern.info-3rdparty-rhel7.repo",
+          "dibbern.info-external-rhel7.repo",
+          "dibbern.info-internal-rhel7.repo"
+        };
+
+      "local_keys"
+        slist => {
+        };
+
+    common_divisions:use_local_repository.common_divisions:rhel_alike_7::
+      "local_repos"
+        slist => {
+          "local/dibbern.info-3rdparty-rhel7.repo",
+          "local/dibbern.info-external-rhel7.repo",
+          "local/dibbern.info-internal-rhel7.repo"
+        };
+
+      "local_keys"
+        slist => {
+        };
+
+    default:64_bit.common_divisions:rhel_alike_7::
+      "repos_64bit_only"
+        slist => {
+          "adobe-linux-x86_64.repo"
+        };
+
+
+    any::
+      "resource_dir"
+        string => "$(division_dir)/$(platform_dir)";
+
+      "keyresource_dir"
+        string => "$(division_dir)/$(platform_dir)/keys";
+
+  files:
+    common_divisions:rhel_alike::
+      "$(pkidir)/$(keys)"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(keyresource_dir)/$(keys).txt");
+
+      "$(pkidir)/$(local_keys)"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(keyresource_dir)/$(local_keys).txt");
+
+      "$(repodir)/$(repos)"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(repos)$(postfix).txt");
+
+      "$(repodir)/$(local_repos)"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(local_repos)$(postfix).txt");
+
+      "$(repodir)/$(repos_64bit_only)"
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(repos_64bit_only)$(postfix).txt");
+
+  packages:
+    common_divisions:rhel_alike_5::
+      "yum-priorities"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => yum_priorities_packages_installation_class;
+
+    common_divisions:rhel_alike.!common_divisions:rhel_alike_5::
+      "yum-plugin-priorities"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => yum_plugin_priorities_installation_class;
+}

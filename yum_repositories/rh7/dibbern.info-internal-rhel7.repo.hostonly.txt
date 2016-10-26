@@ -1,0 +1,19 @@
+[dibbern.info-internal-rhel7]
+name=Internal packages for dibbern.info for $basearch
+baseurl=file:///var/repositories/rpm/dibbern.info/internal/rhel7/$basearch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=2
+
+[dibbern.info-internal-rhel7-noarch]
+name=Internal packages for dibbern.info for noarch
+baseurl=file:///var/repositories/rpm/dibbern.info/internal/rhel7/noarch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=2

@@ -1,0 +1,21 @@
+[dibbern.info-3rdparty-rhel7-local]
+name=3rdparty packages for dibbern.info for $basearch
+baseurl=file://var/repositories/dibbern.info/3rdparty/rhel7/$basearch
+	http://localhost/dibbern.info/3rdparty/rhel7/$basearch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=5
+
+[dibbern.info-3rdparty-rhel7-noarch-local]
+name=3rdparty packages for dibbern.info for noarch
+baseurl=file://var/repositories/dibbern.info/3rdparty/rhel7/noarch
+	http://localhost/dibbern.info/3rdparty/rhel7/noarch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=5

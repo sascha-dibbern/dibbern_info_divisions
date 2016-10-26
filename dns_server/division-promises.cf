@@ -1,0 +1,234 @@
+#
+# *cfdivisions_bundlesequence = dns_master_server_division_preparation,dns_master_server_teardown,dns_master_server_setup,dns_master_server_firewall_setup
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+body classes bind_package_installation_class
+{
+    scope            => "bundle";
+    promise_kept     => { "package_bind_installed" };
+    promise_repaired => { "package_bind_repaired" };
+}
+
+bundle common dns_master_server_config
+{
+  vars:
+   any::
+      # Artefacts
+      "artefacts"
+        string => "dibbern_info_config_dns_server";
+
+      "cached_artefacts"
+        string => "$(common_divisions:artefacts.cache)/$(artefacts)";
+
+      "network[intranet_dibbern_info]" string => "192.168.10.0/24";
+      
+    common_divisions:redhat_alike::
+      "dir[etc]"                        string => "/etc";
+      "dir[etc_named]"                  string => "/etc/named";
+      "dir[relative_var_named]"         string => "/var/named";
+      "dir[var_named_root]"             string => "/var/named";
+      "dir[var_named]"                  string => "/var/named/chroot/$(dir[relative_var_named])";
+
+      "file[named_conf]"                string => "/etc/named.conf";
+      "file[named_conf_tpl]"            string => "/etc/named.conf.tpl";
+      "file[rndc_key]"                  string => "/etc/rndc.key";
+      "file[dhcp_updater_key]"          string => "/etc/named/dhcp-updater.key";
+
+      "superuser"                       string => "root";
+      "supergroup"                      string => "root";
+      "nameduser"                       string => "named";
+      "namedgroup"                      string => "named";
+
+      "option[bindkeys-file]"           string => "bindkeys-file \"$(dir[etc_named])/named.iscdlv.key\";$(const.n)";
+      "option[managed-keys-directory]"  string => "managed-keys-directory \"$(dir[relative_var_named])/dynamic\";$(const.n)";
+      "option[include-named.root.key]"  string => "include \"$(dir[etc_named])/named.root.key\";$(const.n)"; 
+}
+
+bundle agent dns_master_server_division_preparation
+{
+  methods:
+    common_divisions:dns_master_server::
+      "update_artefacts $(dns_master_server_config.artefacts)"
+        usebundle => common_divisions:artefacts_cache(
+          "$(dns_master_server_config.artefacts)",
+          "dns_master_server_artefacts"
+        );
+}
+
+bundle agent dns_master_server_teardown
+{
+  packages:
+    common_divisions:remove_dns_master_server.common_divisions:redhat_alike::
+      "bind-chroot"
+         policy         => "absent",
+         package_module => default:yum;
+
+      "bind"
+         policy         => "absent",
+         package_module => default:yum;
+
+  services:
+    (common_divisions:remove_dns_master_server|common_divisions:no_dns_master_server).common_divisions:redhat_alike::
+      "named" 
+        service_policy => "stop",
+        service_method => common_divisions:standard_service; 
+
+      "named" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service; 
+
+}
+
+bundle agent dns_master_server_setup
+{
+  vars:
+    any::
+      "dir_etc"
+        string => "$(dns_master_server_config.dir[etc])";
+
+      "dir_etc_named"
+        string => "$(dns_master_server_config.dir[etc_named])";
+
+      "dir_var_named"
+        string => "$(dns_master_server_config.dir[var_named])";
+
+      "dir_var_named_root"
+        string => "$(dns_master_server_config.dir[var_named_root])";
+
+      "file_rndc_key"
+        string => "$(dns_master_server_config.file[rndc_key])";
+
+      "cached_dir_etc"
+        string => "$(dns_master_server_config.cached_artefacts)/$(dns_master_server_config.dir[etc])";
+
+      "cached_dir_etc_named"
+        string => "$(dns_master_server_config.cached_artefacts)/$(dns_master_server_config.dir[etc_named])";
+
+      "cached_dir_var_named"
+        string => "$(dns_master_server_config.cached_artefacts)/$(dns_master_server_config.dir[var_named])";
+
+      "cached_file_rndc_key"
+        string => "$(dns_master_server_config.cached_artefacts)/$(dns_master_server_config.file[rndc_key])";
+
+      "subfolders"
+        slist => {
+          "data",
+          "dynamic",
+          "slaves"
+	};
+
+      #
+      # Users and groups
+      #
+      "superuser"
+        string => "$(dns_master_server_config.superuser)";
+
+      "nameduser"
+        string => "$(dns_master_server_config.nameduser)";
+
+      "namedgroup"
+        string => "$(dns_master_server_config.namedgroup)";
+
+  files:
+    package_bind_installed::
+      "$(dir_etc_named)"
+        copy_from    => default:local_dcp("$(cached_dir_etc_named)/."),
+        perms        => default:mog("640","$(superuser)","$(namedgroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => default:if_repaired("named_restart_required");
+
+      "$(dir_var_named)"
+        copy_from    => default:local_dcp("$(cached_dir_var_named)/."),
+        perms        => default:mog("640","$(nameduser)","$(namedgroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => default:if_repaired("named_restart_required");
+
+      "$(dir_etc)/named.conf"
+        copy_from => default:local_dcp("$(cached_dir_etc)/named.conf.tpl"),
+        perms     => default:mog("640","$(superuser)","$(namedgroup)"),
+        edit_line => common_divisions:build_scalar_template(
+           "$(cached_dir_etc)/named.conf.tpl"
+        ),
+        create       => "true",
+        classes      => default:if_repaired("named_restart_required");
+        # bug: https://cfengine.com/dev/issues/997
+        #        edit_template => "$(resource_folder)/conf/named.conf.txt",
+
+      "$(file_rndc_key)"
+        copy_from    => default:local_dcp("$(cached_file_rndc_key)"),
+        perms        => default:mog("640","$(superuser)","$(namedgroup)"),
+        classes      => default:if_repaired("named_restart_required");
+
+  packages:
+    common_divisions:dns_master_server.common_divisions:redhat_alike::
+      "bind"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => bind_package_installation_class;
+
+      "bind-chroot"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => bind_package_installation_class;
+
+  commands:
+    package_bind_repaired::
+      "/bin/mkdir /var/named/chroot/var/named/$(subfolders)"
+        comment => "Add {data,dynamic,slaves} chroot folders";
+
+      "/bin/chown $(nameduser):$(namedgroup) $(dir_var_named)/$(subfolders)"
+        comment => "chown {data,dynamic,slaves} chroot folders";
+
+      "/bin/chown $(nameduser):$(namedgroup) $(dir_var_named_root)/$(subfolders)"
+        comment => "chown {data,dynamic,slaves} folders";
+
+      "/sbin/restorecon -R $(dir_var_named_root)"
+        comment => "Restore se-linux-context";
+
+      "/sbin/restorecon -R $(dir_var_named_root)/chroot"
+        comment => "Restore se-linux-context";
+
+  services:
+    common_divisions:dns_master_server.package_bind_installed.common_divisions:redhat_alike::
+      "named" 
+        service_policy => "enable",
+        service_method => common_divisions:standard_service; 
+
+      "named" 
+        service_policy => "start",
+        service_method => common_divisions:standard_service; 
+
+    named_restart_required|package_bind_repaired::
+      "named" 
+        service_policy => "restart",
+        service_method => common_divisions:standard_service; 
+}
+
+bundle agent dns_master_server_firewall_setup
+{ 
+  methods:
+    common_divisions:dns_master_server.!common_divisions:firewall_dns_tcp_open::
+      "open_firewall_tcp_port"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_allsources(
+          "tcp","53","firewall_dns_tcp_open"
+        );
+
+    common_divisions:dns_master_server.!common_divisions:firewall_dns_tcp_953_open::
+      "open_firewall_tcp_953_port"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_allsources(
+          "tcp","953","firewall_dns_tcp_953_open"
+        );
+
+    common_divisions:dns_master_server.!common_divisions:firewall_dns_udp_open::
+      "open_firewall_udp_port"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_allsources(
+          "udp","53","firewall_dns_udp_open"
+        );
+}
+

@@ -1,0 +1,20 @@
+#
+# *cfdivisions_bundlesequence = 
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+bundle common common_definitions
+{
+  vars:
+      "network[localhost]" 
+        string => "127.0.0.0/24";
+      "network[intranet_dibbern_info]" 
+        string => "192.168.10.0/24";
+      "network[vmware_190]" 
+        string => "192.168.190.0/24";
+}

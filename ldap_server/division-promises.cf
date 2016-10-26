@@ -1,0 +1,371 @@
+#
+# *cfdivisions_bundlesequence = ldap_server_division_preparation,ldap_server_rsyslog_setup,ldap_server_teardown,ldap_server_setup,ldap_server_data,ldap_server_initialize,ldap_server_firewall,ldap_server_running
+# *cfdivisions_depends = common
+#
+
+body file control
+{
+      namespace => "dibbern_info_divisions";
+}
+
+body classes ldap_server_package_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+body classes ldap_artefact_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+body classes ldap_service_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+#
+# Common ldap-server configuration
+#
+bundle common ldap_server_configuration
+{
+  vars:
+    any::
+      # Artefacts
+      "artefacts"
+        string => "dibbern_info_config_ldap_master_server";
+
+      "cached_artefacts"
+        string => "$(common_divisions:artefacts.cache)/$(artefacts)";
+
+      # Users
+      "superuser"
+        string => "root";
+      "supergroup"
+        string => "root";
+      "ldapuser"
+        string => "ldap";
+      "ldapgroup"
+        string => "ldap";
+
+      # Files
+      "root_file"
+        slist  => {
+          "/etc/openldap/slapd.conf",
+          "/etc/openldap/schema/samba.schema",
+          "/etc/sysconfig/ldap",
+          "/etc/logrotate.d/slapd"
+	};
+
+      "db_dir"
+        string  => "/var/lib/ldap";
+      "db_init_file"
+        string => "$(db_dir)/initialize-dibbern.info.ldif";
+      "slapd_d_dir"
+        string  => "/etc/openldap/slapd.d";
+
+      "ldap_file"
+        slist  => {
+          "$(slapd_d_dir)/cn=config.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema.ldif",
+          "$(slapd_d_dir)/cn=config/olcDatabase={-1}frontend.ldif",
+          "$(slapd_d_dir)/cn=config/olcDatabase={0}config.ldif",
+          "$(slapd_d_dir)/cn=config/olcDatabase={1}bdb.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema/cn={0}core.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema/cn={1}cosine.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema/cn={2}inetorgperson.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema/cn={3}nis.ldif",
+          "$(slapd_d_dir)/cn=config/cn=schema/cn={4}samba.ldif",
+          "$(db_dir)/DB_CONFIG",
+          "$(db_init_file)"
+	};
+
+      # Firewall
+
+      "firewall_open_network"
+        slist => {
+          "$(common_definitions.network[localhost])",
+          "$(common_definitions.network[intranet_dibbern_info])",
+          "$(common_definitions.network[vmware_190])"
+        };
+}
+
+bundle agent ldap_server_division_preparation
+{
+  methods:
+    common_divisions:ldap_server::
+      "update_artefact $(ldap_server_configuration.root_file)"
+        usebundle => common_divisions:artefacts_cache_file(
+          "$(ldap_server_configuration.artefacts)/$(ldap_server_configuration.root_file)",
+          "ldap_server_files"
+        );
+
+      "update_artefact $(ldap_server_configuration.ldap_file)"
+        usebundle => common_divisions:artefacts_cache_file(
+          "$(ldap_server_configuration.artefacts)/$(ldap_server_configuration.ldap_file)",
+          "ldap_server_files"
+        );
+}
+
+bundle agent ldap_server_rsyslog_setup
+{
+  vars:
+    any::
+      "rsyslog_file"
+        string => "/etc/rsyslog.conf";
+      
+      "rsyslogd[local4.*]"
+        string => "/var/log/slapd.log";
+
+  files:
+    common_divisions:ldap_server.linux::
+      "$(rsyslog_file)"
+        comment   => "Add local4 logging fascility",
+	edit_line => default:set_config_values("OpenldapServer.rsyslogd"),
+	classes   => default:if_repaired("rsyslogd_restart_required");
+
+  services:
+    rsyslogd_restart_required::
+      "rsyslog" 
+        service_policy => "restart",
+        service_method => common_divisions:standard_service; 
+}
+
+body delete tidy_ldap_database
+{
+    dirlinks => "delete";
+    rmdirs   => "true";
+}
+
+body file_select ldap_user_files
+{
+     search_owners => { $(ldap_server_configuration.ldapuser) };
+     file_result   => "owner";
+}
+
+bundle agent ldap_server_teardown
+{
+  # 1. round
+  services:
+    common_divisions:remove_ldap_server|common_divisions:no_ldap_server::
+      # Disable service if not needed anymore
+      "slapd" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("remove_ldap_service");
+
+  # 2. round
+  packages:
+    common_divisions:remove_ldap_server|common_divisions:no_ldap_server::
+      # Uninstall package to ensure removed functionality
+      "openldap-servers"
+         policy         => "absent",
+         package_module => default:yum,
+         classes        => ldap_server_package_state('ldap_server_package_absent');
+
+  files:
+    common_divisions:remove_ldap_server::
+      # Delete database to ensure data security
+      "$(ldap_server_configuration.db_dir)"
+        file_select  => ldap_user_files,
+        delete       => tidy_ldap_database,
+        depth_search => default:recurse("inf"),
+        classes      => ldap_artefact_state("ldap_database_cleanup");
+}
+
+bundle agent ldap_server_setup
+{
+  vars:
+      "resource_folder"
+        string => "$(cfdivisions.division_path[ldap_server])",
+        policy => "overridable";
+
+  files:
+    common_divisions:ldap_server::
+      "$(ldap_server_configuration.root_file)"
+        copy_from    => default:local_dcp("$(ldap_server_configuration.cached_artefacts)/$(ldap_server_configuration.root_file)"),
+        perms        => default:mog("644","$(ldap_server_configuration.superuser)","$(ldap_server_configuration.supergroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => ldap_artefact_state("ldap_server_files");
+
+      "$(ldap_server_configuration.ldap_file)"
+        copy_from    => default:local_dcp("$(ldap_server_configuration.cached_artefacts)/$(ldap_server_configuration.ldap_file)"),
+        perms        => default:mog("640","$(ldap_server_configuration.ldapuser)","$(ldap_server_configuration.ldapgroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => ldap_artefact_state("ldap_server_files");
+
+      "$(ldap_server_configuration.db_dir)/."
+        perms        => default:mog("644","$(ldap_server_configuration.ldapuser)","$(ldap_server_configuration.ldapgroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => ldap_artefact_state("ldap_server_files");
+
+  packages:
+    common_divisions:ldap_server.common_divisions:redhat_alike::
+      "openldap-servers"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => ldap_server_package_state('ldap_server_package_present');
+
+  methods:
+    common_divisions:ldap_server::
+#    common_divisions:ldap_server::
+#      "update_artefact $(ldap_server_configuration.root_file)"
+#        usebundle => common_divisions:artefacts_update_file(
+#          "dibbern_info_config_ldap_master_server/$(ldap_server_configuration.root_file)",
+#          "$(ldap_server_configuration.root_file)",
+#          "644","$(ldap_server_configuration.superuser)","$(ldap_server_configuration.supergroup)",
+#          "ldap_server_files"
+#        );
+
+#      "update_artefact $(ldap_server_configuration.ldap_file)"
+#        usebundle => common_divisions:artefacts_update_file(
+#          "dibbern_info_config_ldap_master_server/$(ldap_server_configuration.ldap_file)",
+#          "$(ldap_server_configuration.ldap_file)",
+#          "640","$(ldap_server_configuration.ldapuser)","$(ldap_server_configuration.ldapgroup)",
+#          "ldap_server_files"
+#        );
+
+  services:
+    ldap_server_files_repaired|ldap_server_package_present_repaired::
+      # Restart service if anything has been changed
+      "slapd" 
+        service_policy => "restart",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("ldap_server_setup_ldap_service_restart");
+}
+
+bundle agent ldap_server_data
+{
+  # 1. round
+  vars:
+    any::
+      "db_files" 
+        slist => { 
+          "$(ldap_server_configuration.db_dir)/__db.001", 
+	  "$(ldap_server_configuration.db_dir)/__db.002", 
+          "$(ldap_server_configuration.db_dir)/__db.003" 
+        };
+
+      "suffix"
+        string => "dc=dibbern,dc=info";
+
+  classes:
+    any::
+      "db_files_exist"
+        expression => filesexist(@(db_files));
+
+
+  reports:
+    common_divisions:initialize_ldap_server.db_files_exist::
+      "LDAP database files exist";
+
+  # 2. round
+  vars:
+    common_divisions:initialize_ldap_server.db_files_exist::
+      "slapd_catalog"
+        string => execresult("/usr/sbin/slapcat -b$(suffix) 2>/dev/null | /usr/bin/head -80| /bin/grep 'dn:'","useshell");      
+
+  classes:
+    common_divisions:initialize_ldap_server::
+      "ldap_database_is_initialized"
+        scope      => "namespace",
+        expression => regcmp(".*dibbern.*","$(slapd_catalog)");
+
+  reports:
+    ldap_database_is_initialized::
+      "LDAP database is initialized";
+}
+
+body classes ldap_server_loading
+{
+    scope            => "namespace";
+    kept_returncodes => { "0" };
+    promise_kept     => { "ldap_server_loading_ok" };
+}
+
+bundle agent ldap_server_initialize
+{
+  # 1. round
+
+  classes:
+    common_divisions:initialize_ldap_server.!ldap_database_is_initialized::
+     "ldap_service_stop_for_load"
+        expression => "any";
+
+     "ldap_database_load_data"
+        expression => "any";
+
+  services:
+    ldap_service_stop_for_load::
+      "slapd" 
+        service_policy => "stop",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("ldap_server_initialize_ldap_service_stop");
+
+  commands: 
+    ldap_database_load_data::
+      "/usr/sbin/slapadd -b dc=dibbern,dc=info -l $(ldap_server_configuration.db_init_file)"
+	classes => ldap_server_loading,
+        comment  => "Load ldap database";
+
+  # 2. round
+
+  services:
+    ldap_server_loading_ok::
+      "slapd" 
+        service_policy => "start",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("ldap_server_initialize_ldap_service_start");
+}
+
+bundle agent ldap_server_running
+{
+  services:
+    common_divisions:ldap_server.!common_divisions:disable_ldap_server::
+      "slapd" 
+        service_policy => "enable",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("ldap_service_enable");
+
+    common_divisions:ldap_server.common_divisions:disable_ldap_server::
+      "slapd" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service, 
+	classes        => ldap_service_state("ldap_service_disable");
+}
+
+bundle agent ldap_server_firewall
+{
+  vars:
+    any::
+      "input_network"
+        slist => { @(ldap_server_configuration.firewall_open_network) };
+
+  methods:
+    common_divisions:ldap_server::
+      "open_firewall_port_tcp_389_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "389",
+           concat("firewall_ldap_tcp_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_udp_389_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+           "udp",
+           "389",
+            concat("firewall_ldap_udp_open_",canonify($(input_network)))
+        );
+
+  reports:
+    common_divisions:ldap_server::
+      "Firewall: LDAP server can be accessed from $(input_network) network";
+}
+

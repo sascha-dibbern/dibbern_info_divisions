@@ -1,0 +1,23 @@
+[dibbern.info-3rdparty-rhel6]
+name=3rdparty packages for dibbern.info for $basearch
+baseurl=http://repo.intranet.dibbern.info/dibbern.info/3rdparty/rhel6/$basearch
+	http://repo001.intranet.dibbern.info/dibbern.info/3rdparty/rhel6/$basearch
+#	http://sascha.dibbern.info/dibbern.info/3rdparty/rhel6/$basearch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=6
+
+[dibbern.info-3rdparty-rhel6-noarch]
+name=3rdparty packages for dibbern.info for noarch
+baseurl=http://repo.intranet.dibbern.info/dibbern.info/3rdparty/rhel6/noarch
+	http://repo001.intranet.dibbern.info/dibbern.info/3rdparty/rhel6/noarch
+#	http://sascha.dibbern.info/dibbern.info/3rdparty/rhel6/noarch
+failovermethod=priority
+enabled=1
+gpgcheck=0
+#gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dibbern.info
+metadata_expire=1
+priority=6

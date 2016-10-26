@@ -1,0 +1,4 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4 
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.10.5	      mysql-1.intranet.dibbern.info mysql002.intranet.dibbern.info
+192.168.10.27	      sascha.intranet.dibbern.info home.dibbern.info mybox.dibbern.info testwiki1.dibbern.info testwiki2.dibbern.info testwiki3.dibbern.info testwiki4.dibbern.info testwiki5.dibbern.info www.kayokohida.com sascha.dibbern.info demo1-wiki.dibbern.info
