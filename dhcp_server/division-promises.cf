@@ -54,7 +54,7 @@ bundle agent dhcp_server_division_preparation
 bundle agent dhcp_server_teardown
 {
   packages:
-    common_divisions:no_dhcp_server.common_divisions:redhat_alike::
+    common_divisions:remove_dhcp_server.common_divisions:redhat_alike::
       "dhcp"
          policy         => "absent",
          package_module => default:yum,
