@@ -33,6 +33,7 @@ bundle agent non_dns_naming_setup
   files:
     hostfile_override::
       "/etc/hosts"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(source_hostsfile)");
 }

@@ -138,18 +138,21 @@ bundle agent dns_master_server_setup
   files:
     package_bind_installed::
       "$(dir_etc_named)"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(cached_dir_etc_named)/."),
         perms        => default:mog("640","$(superuser)","$(namedgroup)"),
 	depth_search => default:recurse("inf"),
         classes      => default:if_repaired("named_restart_required");
 
       "$(dir_var_named)"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(cached_dir_var_named)/."),
         perms        => default:mog("640","$(nameduser)","$(namedgroup)"),
 	depth_search => default:recurse("inf"),
         classes      => default:if_repaired("named_restart_required");
 
       "$(dir_etc)/named.conf"
+        changes      => default:detect_all_change,
         copy_from => default:local_dcp("$(cached_dir_etc)/named.conf.tpl"),
         perms     => default:mog("640","$(superuser)","$(namedgroup)"),
         edit_line => common_divisions:build_scalar_template(
@@ -161,6 +164,7 @@ bundle agent dns_master_server_setup
         #        edit_template => "$(resource_folder)/conf/named.conf.txt",
 
       "$(file_rndc_key)"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(cached_file_rndc_key)"),
         perms        => default:mog("640","$(superuser)","$(namedgroup)"),
         classes      => default:if_repaired("named_restart_required");

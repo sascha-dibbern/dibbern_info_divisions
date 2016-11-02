@@ -191,22 +191,27 @@ bundle agent yum_repositories_setup
   files:
     common_divisions:rhel_alike::
       "$(pkidir)/$(keys)"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(keyresource_dir)/$(keys).txt");
 
       "$(pkidir)/$(local_keys)"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(keyresource_dir)/$(local_keys).txt");
 
       "$(repodir)/$(repos)"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(repos)$(postfix).txt");
 
       "$(repodir)/$(local_repos)"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(local_repos)$(postfix).txt");
 
       "$(repodir)/$(repos_64bit_only)"
+        changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
         copy_from => common_divisions:compare_backup_local_cp("$(resource_dir)/$(repos_64bit_only)$(postfix).txt");
 

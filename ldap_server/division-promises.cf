@@ -172,6 +172,7 @@ bundle agent ldap_server_teardown
     common_divisions:remove_ldap_server::
       # Delete database to ensure data security
       "$(ldap_server_configuration.db_dir)"
+        changes      => default:detect_all_change,
         file_select  => ldap_user_files,
         delete       => tidy_ldap_database,
         depth_search => default:recurse("inf"),
@@ -188,18 +189,21 @@ bundle agent ldap_server_setup
   files:
     common_divisions:ldap_server::
       "$(ldap_server_configuration.root_file)"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(ldap_server_configuration.cached_artefacts)/$(ldap_server_configuration.root_file)"),
         perms        => default:mog("644","$(ldap_server_configuration.superuser)","$(ldap_server_configuration.supergroup)"),
 	depth_search => default:recurse("inf"),
         classes      => ldap_artefact_state("ldap_server_files");
 
       "$(ldap_server_configuration.ldap_file)"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(ldap_server_configuration.cached_artefacts)/$(ldap_server_configuration.ldap_file)"),
         perms        => default:mog("640","$(ldap_server_configuration.ldapuser)","$(ldap_server_configuration.ldapgroup)"),
 	depth_search => default:recurse("inf"),
         classes      => ldap_artefact_state("ldap_server_files");
 
       "$(ldap_server_configuration.db_dir)/."
+        changes      => default:detect_all_change,
         perms        => default:mog("644","$(ldap_server_configuration.ldapuser)","$(ldap_server_configuration.ldapgroup)"),
 	depth_search => default:recurse("inf"),
         classes      => ldap_artefact_state("ldap_server_files");

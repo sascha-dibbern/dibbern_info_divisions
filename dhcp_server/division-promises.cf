@@ -92,6 +92,7 @@ bundle agent dhcp_server_setup
 
   files:
       "$(dhcp_server_configuration.dir[etc_dhcp])"
+        changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(cached_dir_etc_dhcp)/."),
         perms        => default:mog(
           "640",
