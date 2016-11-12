@@ -14,7 +14,7 @@ bundle common artefacts_hub_configuration
     default:am_policy_hub::
 
       "am_artefacts_hub"
-        expression => any;
+        expression => "any";
 
   vars:
     any::
