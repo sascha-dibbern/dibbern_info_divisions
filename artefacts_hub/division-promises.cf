@@ -45,21 +45,32 @@ bundle agent git_update_artefacts
     "git_pull"
       string => "/usr/bin/git pull";
 
+    "gitconfigpath"
+       string => concat(
+                        $(common_divisions:artefacts.location),
+                        "/",
+                        $(artefacts_hub_configuration.artefacts),
+                        "/.git/config"
+                       );
   classes:
     am_artefacts_hub::
       "$(artefacts_hub_configuration.artefacts)_exists"
-        expression => fileexists(concat(
-                                        $(common_divisions:artefacts.location),
-                                        $(artefacts_hub_configuration.artefacts)
-                                       ));
+        expression => fileexists($(gitconfigpath));
 
   commands: 
     am_artefacts_hub::
       "$(git_clone) $(artefacts_hub_configuration.artefacts)"
-        contain    => run_in_dir("$(common::artefacts.location)"),
+        contain    => run_in_dir("$(common_divisions:artefacts.location)"),
         ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
 
       "$(git_pull)"
-        contain    => run_in_dir("$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
+        contain    => run_in_dir("$(common_divisions:artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
         ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
+
+  reports:
+    "alok: $(common_divisions:artefacts.location)";
+    "Clsname: $(artefacts_hub_configuration.artefacts)_exists"
+        ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
+    "apath: $(common_divisions:artefacts.location)/$(artefacts_hub_configuration.artefacts)";
+    "confpath: $(gitconfigpath)";
 }
