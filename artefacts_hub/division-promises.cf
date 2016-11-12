@@ -32,6 +32,10 @@ bundle common artefacts_hub_configuration
         string=>"$(common_definitions.central_gitrepo_server)";
 }
 
+body contain run_in_dir (dir) {
+  chdir => "$(dir)",
+}
+
 bundle agent git_update_artefacts
 {
   vars:
@@ -52,10 +56,10 @@ bundle agent git_update_artefacts
   commands: 
     default:am_artefacts_hub::
       "$(git_clone) $(artefacts_hub_configuration.artefacts)"
-        chdir => "$(common::artefacts.location)",
+        contain    => run_in_dir("$(common::artefacts.location)"),
         ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
 
       "$(git_pull)"
-        chdir => "$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)",
+        contain    => run_in_dir"$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
         ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
 }
