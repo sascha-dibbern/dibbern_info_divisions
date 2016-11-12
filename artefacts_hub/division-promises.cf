@@ -46,7 +46,7 @@ bundle agent git_update_artefacts
       string => "/usr/bin/git pull";
 
   classes:
-    default:am_artefacts_hub::
+    am_artefacts_hub::
       "$(artefacts_hub_configuration.artefacts)_exists"
         expression => fileexists(concat(
                                         $(common_divisions:artefacts.location),
@@ -54,7 +54,7 @@ bundle agent git_update_artefacts
                                        ));
 
   commands: 
-    default:am_artefacts_hub::
+    am_artefacts_hub::
       "$(git_clone) $(artefacts_hub_configuration.artefacts)"
         contain    => run_in_dir("$(common::artefacts.location)"),
         ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
