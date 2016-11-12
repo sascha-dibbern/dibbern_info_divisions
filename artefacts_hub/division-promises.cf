@@ -48,10 +48,10 @@ bundle agent git_update_artefacts
   classes:
     default:am_artefacts_hub::
       "$(artefacts_hub_configuration.artefacts)_exists"
-        expression => fileexist(concat(
-                                       $(common_divisions:artefacts.location),
-                                       $(artefacts_hub_configuration.artefacts)
-                                      ));
+        expression => fileexists(concat(
+                                        $(common_divisions:artefacts.location),
+                                        $(artefacts_hub_configuration.artefacts)
+                                       ));
 
   commands: 
     default:am_artefacts_hub::
