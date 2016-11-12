@@ -33,7 +33,7 @@ bundle common artefacts_hub_configuration
 }
 
 body contain run_in_dir (dir) {
-  chdir => "$(dir)",
+  chdir => "$(dir)";
 }
 
 bundle agent git_update_artefacts
