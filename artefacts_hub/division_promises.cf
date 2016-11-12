@@ -1,0 +1,60 @@
+#
+# *cfdivisions_bundlesequence = git_update_artefacts
+# *cfdivisions_depends = common
+#
+
+body file control
+{
+      namespace => "dibbern_info_divisions";
+}
+
+bundle common artefacts_hub_configuration
+{
+  classes:
+    default:am_policy_hub::
+
+      "am_artefacts_hub"
+        expression => any;
+
+  vars
+    any::
+
+      "artefacts"
+        slist => [
+          "dibbern_info_config_dhcp_server",
+          "dibbern_info_config_dns_server",
+          "dibbern_info_config_ldap_master_server"
+        ];
+
+    am_artefacts_hub::
+
+      "artefacts_gitrepo_server"
+        string=>"$(common_definitions.central_gitrepo_server)";
+}
+
+bundle agent git_update_artefacts
+{
+  vars:
+    "git_clone"
+      string => "/usr/bin/git clone";
+
+    "git_pull"
+      string => "/usr/bin/git pull";
+
+  classes:
+    default:am_artefacts_hub::
+      "$(artefacts_hub_configuration.artefacts)_exists" => fileexist(concat(
+                                                                            $(common_divisions:artefacts.location),
+                                                                            $(artefacts_hub_configuration.artefacts)
+                                                                            ));
+
+  commands: 
+    default:am_artefacts_hub::
+      "$(git_clone) $(artefacts_hub_configuration.artefacts)"
+        chdir => "$(common::artefacts.location)",
+        ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
+
+      "$(git_pull)"
+        chdir => "$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)",
+        ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
+}

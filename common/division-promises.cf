@@ -13,8 +13,23 @@ bundle common common_definitions
   vars:
       "network[localhost]" 
         string => "127.0.0.0/24";
+
+    # Non-test-environment
+    !common_divisions:TEST::
+
       "network[intranet_dibbern_info]" 
         string => "192.168.10.0/24";
-      "network[vmware_190]" 
+
+      "central_gitrepo_server"
+        string=>"ssh://admin@192.168.10.15/share/gitrepo/";
+ 
+    # Test-environment
+    common_divisions:TEST::
+
+      "network[intranet_dibbern_info]" 
         string => "192.168.190.0/24";
+
+      "central_gitrepo_server"
+        string=>"ssh://sascha@192.168.190.20/home/sascha/repositories/";
+
 }
