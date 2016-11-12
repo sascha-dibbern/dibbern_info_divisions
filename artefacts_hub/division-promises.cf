@@ -20,11 +20,11 @@ bundle common artefacts_hub_configuration
     any::
 
       "artefacts"
-        slist => [
+        slist => {
           "dibbern_info_config_dhcp_server",
           "dibbern_info_config_dns_server",
           "dibbern_info_config_ldap_master_server"
-        ];
+        };
 
     am_artefacts_hub::
 
