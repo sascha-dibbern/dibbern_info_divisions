@@ -60,6 +60,6 @@ bundle agent git_update_artefacts
         ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
 
       "$(git_pull)"
-        contain    => run_in_dir"$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
+        contain    => run_in_dir("$(common::artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
         ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
 }
