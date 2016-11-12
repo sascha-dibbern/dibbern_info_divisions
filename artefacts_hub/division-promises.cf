@@ -16,7 +16,7 @@ bundle common artefacts_hub_configuration
       "am_artefacts_hub"
         expression => any;
 
-  vars
+  vars:
     any::
 
       "artefacts"
