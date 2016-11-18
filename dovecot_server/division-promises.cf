@@ -1,0 +1,253 @@
+#
+# *cfdivisions_bundlesequence = dovecot_server_division_preparation,dovecot_server_teardown,dovecot_server_setup,dovecot_server_data,dovecot_server_firewall,dovecot_server_running
+# *cfdivisions_depends = common
+#
+
+body file control
+{
+      namespace => "dibbern_info_divisions";
+}
+
+body classes dovecot_server_package_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+body classes dovecot_artefact_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+body classes dovecot_service_state(x)
+{
+      scope            => "namespace";
+      promise_kept     => { "$(x)_kept" };
+      promise_repaired => { "$(x)_repaired" };
+}
+
+#
+# Common dovecot-server configuration
+#
+bundle common dovecot_server_configuration
+{
+  vars:
+    any::
+      # Artefacts
+      "artefacts"
+        string => "dibbern_info_config_dovecot_server";
+
+      "cached_artefacts"
+        string => "$(common_divisions:artefacts.cache)/$(artefacts)";
+
+      # Users
+      "superuser"
+        string => "root";
+      "supergroup"
+        string => "root";
+      "dovecotuser"
+        string => "dovecot";
+      "dovecotgroup"
+        string => "dovecot";
+
+      # Files
+      "root_file"
+        slist  => {
+          "/etc/dovecot/dovecot.conf",
+          "/etc/dovecot/10-auth.conf",
+          "/etc/dovecot/10-master.conf",
+          "/etc/dovecot/20-imap.conf",
+          "/etc/dovecot/90-plugin.conf",
+          "/etc/dovecot/auth-dict.conf.ext",
+          "/etc/dovecot/auth-sql.conf.ext",
+          "/etc/dovecot/10-director.conf",
+          "/etc/dovecot/10-ssl.conf",
+          "/etc/dovecot/20-lmtp.conf",
+          "/etc/dovecot/90-quota.conf",
+          "/etc/dovecot/auth-ldap.conf.ext",
+          "/etc/dovecot/auth-static.conf.ext",
+          "/etc/dovecot/10-logging.conf",
+          "/etc/dovecot/15-lda.conf",
+          "/etc/dovecot/20-pop3.conf",
+          "/etc/dovecot/auth-checkpassword.conf.ext",
+          "/etc/dovecot/auth-master.conf.ext",
+          "/etc/dovecot/auth-system.conf.ext",
+          "/etc/dovecot/10-mail.conf",
+          "/etc/dovecot/15-mailboxes.conf",
+          "/etc/dovecot/90-acl.conf",
+          "/etc/dovecot/auth-deny.conf.ext",
+          "/etc/dovecot/auth-passwdfile.conf.ext",
+          "/etc/dovecot/auth-vpopmail.conf.ext"
+	};
+
+      "mail_input_dir"
+        string  => "/var/mail";
+
+      # Firewall
+
+      "firewall_open_network"
+        slist => {
+          "$(common_definitions.network[localhost])",
+          "$(common_definitions.network[intranet_dibbern_info])",
+          "$(common_definitions.network[vmware_190])"
+        };
+}
+
+bundle agent dovecot_server_division_preparation
+{
+  methods:
+    common_divisions:dovecot_server::
+      "update_artefact $(dovecot_server_configuration.root_file)"
+        usebundle => common_divisions:artefacts_cache_file(
+          "$(dovecot_server_configuration.artefacts)/$(dovecot_server_configuration.root_file)",
+          "dovecot_server_files"
+        );
+}
+
+body delete tidy_dovecot_database
+{
+    dirlinks => "delete";
+    rmdirs   => "true";
+}
+
+body file_select dovecot_user_files
+{
+     search_owners => { $(dovecot_server_configuration.dovecotuser) };
+     file_result   => "owner";
+}
+
+bundle agent dovecot_server_teardown
+{
+  # 1. round
+  services:
+    common_divisions:dovecot_server|common_divisions:no_dovecot_server::
+      # Disable service if not needed anymore
+      "dovecot" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service, 
+	classes        => dovecot_service_state("remove_dovecot_service");
+
+  # 2. round
+  packages:
+    common_divisions:remove_dovecot_server|common_divisions:no_dovecot_server::
+      # Uninstall package to ensure removed functionality
+      "dovecot"
+         policy         => "absent",
+         package_module => default:yum,
+         classes        => dovecot_server_package_state('dovecot_server_package_absent');
+}
+
+bundle agent dovecot_server_setup
+{
+  files:
+    common_divisions:dovecot_server::
+      "$(dovecot_server_configuration.root_file)"
+        changes      => default:detect_all_change,
+        copy_from    => default:local_dcp("$(dovecot_server_configuration.cached_artefacts)/$(dovecot_server_configuration.root_file)"),
+        perms        => default:mog("644","$(dovecot_server_configuration.superuser)","$(dovecot_server_configuration.supergroup)"),
+	depth_search => default:recurse("inf"),
+        classes      => dovecot_artefact_state("dovecot_server_files");
+
+  packages:
+    common_divisions:dovecot_server.common_divisions:redhat_alike::
+      "dovecot"
+         policy         => "present",
+         package_module => default:yum,
+         classes        => dovecot_server_package_state('dovecot_server_package_present');
+
+  services:
+    dovecot_server_files_repaired|dovecot_server_package_present_repaired::
+      # Restart service if anything has been changed
+      "dovecot" 
+        service_policy => "restart",
+        service_method => common_divisions:standard_service, 
+	classes        => dovecot_service_state("dovecot_server_setup_dovecot_service_restart");
+}
+
+#bundle agent dovecot_server_data
+{
+  reports:
+    "TODO: Databackup for dovecot";
+}
+
+bundle agent dovecot_server_running
+{
+  services:
+    common_divisions:dovecot_server.!common_divisions:dovecot_server::
+      "dovecot" 
+        service_policy => "enable",
+        service_method => common_divisions:standard_service, 
+	classes        => dovecot_service_state("dovecot_service_enable");
+
+    common_divisions:dovecot_server.common_divisions:disable_dovecot_server::
+      "dovecot" 
+        service_policy => "disable",
+        service_method => common_divisions:standard_service, 
+	classes        => dovecot_service_state("dovecot_service_disable");
+}
+
+bundle agent dovecot_server_firewall
+{
+  vars:
+    any::
+      "input_network"
+        slist => { @(dovecot_server_configuration.firewall_open_network) };
+
+  methods:
+    common_divisions:dovecot_server::
+      "open_firewall_port_pop2_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "109",
+           concat("firewall_dovecot_pop2_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_pop3_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "110",
+           concat("firewall_dovecot_pop3_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_pop3s_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "995",
+           concat("firewall_dovecot_pop3s_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_imap2_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "143",
+           concat("firewall_dovecot_imap2_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_imap3_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "220",
+           concat("firewall_dovecot_imap3_open_",canonify($(input_network)))
+        );
+
+      "open_firewall_port_imaps_network_$(input_network)"
+        usebundle => common_divisions:firewall_iptables_open_INPUT_sourcebased(
+          "$(input_network)",
+          "tcp",
+          "993",
+           concat("firewall_dovecot_imaps_open_",canonify($(input_network)))
+        );
+
+  reports:
+    common_divisions:dovecot_server::
+      "Firewall: Dovecot server can be accessed from $(input_network) network";
+}
+
