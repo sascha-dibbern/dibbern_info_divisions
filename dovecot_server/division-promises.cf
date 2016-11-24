@@ -167,7 +167,7 @@ bundle agent dovecot_server_setup
 	classes        => dovecot_service_state("dovecot_server_setup_dovecot_service_restart");
 }
 
-#bundle agent dovecot_server_data
+bundle agent dovecot_server_data
 {
   reports:
     "TODO: Databackup for dovecot";
