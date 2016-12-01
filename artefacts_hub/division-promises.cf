@@ -1,5 +1,5 @@
 #
-# *cfdivisions_bundlesequence = git_update_artefacts
+# *cfdivisions_bundlesequence = artefacts_hub_configuration,git_update_artefacts
 # *cfdivisions_depends = common
 #
 
@@ -8,12 +8,13 @@ body file control
       namespace => "dibbern_info_divisions";
 }
 
-bundle common artefacts_hub_configuration
+bundle agent artefacts_hub_configuration
 {
   classes:
     default:am_policy_hub::
 
       "am_artefacts_hub"
+        scope      => "namespace",
         expression => "any";
 
   vars:
@@ -23,7 +24,8 @@ bundle common artefacts_hub_configuration
         slist => {
           "dibbern_info_config_dhcp_server",
           "dibbern_info_config_dns_server",
-          "dibbern_info_config_ldap_master_server"
+          "dibbern_info_config_ldap_master_server",
+          "dibbern_info_config_dovecot_server"
         };
 
     am_artefacts_hub::
@@ -32,45 +34,17 @@ bundle common artefacts_hub_configuration
         string=>"$(common_definitions.central_gitrepo_server)";
 }
 
-body contain run_in_dir (dir) {
-  chdir => "$(dir)";
-}
-
 bundle agent git_update_artefacts
 {
-  vars:
-    "git_clone"
-      string => "/usr/bin/git clone";
-
-    "git_pull"
-      string => "/usr/bin/git pull";
-
-    "gitconfigpath"
-       string => concat(
-                        $(common_divisions:artefacts.location),
-                        "/",
-                        $(artefacts_hub_configuration.artefacts),
-                        "/.git/config"
-                       );
-  classes:
+  methods:
     am_artefacts_hub::
-      "$(artefacts_hub_configuration.artefacts)_exists"
-        expression => fileexists($(gitconfigpath));
-
-  commands: 
-    am_artefacts_hub::
-      "$(git_clone) $(artefacts_hub_configuration.artefacts)"
-        contain    => run_in_dir("$(common_divisions:artefacts.location)"),
-        ifvarclass => not("$(artefacts_hub_configuration.artefacts)_exists");
-
-      "$(git_pull)"
-        contain    => run_in_dir("$(common_divisions:artefacts.location)/$(artefacts_hub_configuration.artefacts)"),
-        ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
+      "update_$(artefacts_hub_configuration.artefacts)"
+        usebundle => common_divisions:update_gitbased_artefacts_library(
+          $(artefacts_hub_configuration.artefacts_gitrepo_server),
+          $(artefacts_hub_configuration.artefacts)
+        );
 
   reports:
-    "alok: $(common_divisions:artefacts.location)";
-    "Clsname: $(artefacts_hub_configuration.artefacts)_exists"
+    "Artefact state: $(artefacts_hub_configuration.artefacts)_exists"
         ifvarclass => "$(artefacts_hub_configuration.artefacts)_exists";
-    "apath: $(common_divisions:artefacts.location)/$(artefacts_hub_configuration.artefacts)";
-    "confpath: $(gitconfigpath)";
 }
