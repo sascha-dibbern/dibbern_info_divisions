@@ -1,5 +1,5 @@
 #
-# *cfdivisions_bundlesequence = 
+# *cfdivisions_bundlesequence = common_definitions 
 # *cfdivisions_depends = 
 #
 
@@ -8,7 +8,7 @@ body file control
     namespace => "dibbern_info_divisions";
 }
 
-bundle common common_definitions
+bundle agent common_definitions
 {
   vars:
       "network[localhost]" 
@@ -32,4 +32,8 @@ bundle common common_definitions
       "central_gitrepo_server"
         string=>"ssh://sascha@192.168.190.20/home/sascha/repositories/";
 
+  reports:
+    any::
+      "network[intranet_dibbern_info]: $(network[intranet_dibbern_info])";
+      "central_gitrepo_server: $(central_gitrepo_server)";
 }
