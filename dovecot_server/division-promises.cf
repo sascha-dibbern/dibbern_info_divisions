@@ -1,5 +1,5 @@
 #
-# *cfdivisions_bundlesequence = dovecot_server_division_preparation,dovecot_server_teardown,dovecot_server_setup,dovecot_server_data,dovecot_server_firewall,dovecot_server_running
+# *cfdivisions_bundlesequence = dovecot_server_configuration,dovecot_server_division_preparation,dovecot_server_teardown,dovecot_server_setup,dovecot_server_data,dovecot_server_firewall,dovecot_server_running
 # *cfdivisions_depends = common
 #
 
@@ -32,7 +32,7 @@ body classes dovecot_service_state(x)
 #
 # Common dovecot-server configuration
 #
-bundle common dovecot_server_configuration
+bundle agent dovecot_server_configuration
 {
   vars:
     any::
