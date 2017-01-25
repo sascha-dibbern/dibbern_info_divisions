@@ -56,7 +56,7 @@ bundle agent yum_repositories_setup
 
       "keys"
         slist => {
-          "jenkins-ci.org",
+          "jenkins-io.org",
 	  "RPM-GPG-KEY-adobe-linux",
           "RPM-GPG-KEY-EPEL-6",
           "RPM-GPG-KEY-livna",
@@ -128,7 +128,7 @@ bundle agent yum_repositories_setup
 
       "keys"
         slist => {
-          "jenkins-ci.org",
+          "jenkins-io.org",
 	  "RPM-GPG-KEY-adobe-linux",
           "RPM-GPG-KEY-CentOS-7",
           "RPM-GPG-KEY-CentOS-Debug-7",
