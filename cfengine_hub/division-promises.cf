@@ -1,0 +1,17 @@
+#
+# *cfdivisions_bundlesequence = cfe_hub_firewall 
+# *cfdivisions_depends = 
+#
+
+body file control
+{
+    namespace => "dibbern_info_divisions";
+}
+
+bundle agent cfe_hub_firewall
+{
+  methods:
+    am_policy_hub::
+      "cfe_hub_firewall_setup"
+         usebundle => common_divisions:firewall_iptables_services_only_at_least_for_cfengine_and_ssh;
+}
