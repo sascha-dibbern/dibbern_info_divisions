@@ -190,6 +190,11 @@ bundle agent yum_repositories_setup
 
   files:
     common_divisions:rhel_alike::
+      "/etc/yum.conf"
+        changes   => default:detect_all_change,
+        perms     => default:mog("644","root","root"),
+        copy_from => common_divisions:compare_backup_local_cp("$(division_dir)/yum.conf.txt");
+
       "$(pkidir)/$(keys)"
         changes   => default:detect_all_change,
         perms     => default:mog("644","root","root"),
