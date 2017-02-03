@@ -91,6 +91,7 @@ bundle agent dhcp_server_setup
         string => "$(dhcp_server_configuration.cached_artefacts)/$(dhcp_server_configuration.dir[etc_dhcp])";
 
   files:
+    common_divisions:dhcp_server.common_divisions:redhat_alike::
       "$(dhcp_server_configuration.dir[etc_dhcp])"
         changes      => default:detect_all_change,
         copy_from    => default:local_dcp("$(cached_dir_etc_dhcp)/."),
